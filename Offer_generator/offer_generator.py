@@ -414,13 +414,15 @@ class OfferTemplate(FPDF):
         # Użyj ścieżki względnej do katalogu projektu
         import os
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.logo_path = os.path.join(current_dir, 'images', 'logo.png')
+        project_dir = os.path.dirname(current_dir)  # Katalog nadrzędny
+        self.logo_path = os.path.join(project_dir, 'AutoAdaptacje', 'images', 'logo.png')
         
-        # Jeśli nie ma logo, użyj tekstu
+        # Sprawdź czy plik logo istnieje
         if not os.path.exists(self.logo_path):
             logger.warning(f"Nie znaleziono pliku logo: {self.logo_path}")
             self.has_logo = False
         else:
+            logger.info(f"Znaleziono plik logo: {self.logo_path}")
             self.has_logo = True
             
         self.add_page()
@@ -475,7 +477,12 @@ class OfferTemplate(FPDF):
         self.rect(0, 0, 210, self.header_height, 'F')
         
         # Logo
-        self.image('images/logo.png', 10, 10, 40)
+        if self.has_logo:
+            self.image(self.logo_path, 10, 10, 40)
+        else:
+            # Jeśli nie ma logo, wyświetl tekst
+            self.set_font('Arial', 'B', 16)
+            self.cell(0, 10, 'AutoAdaptacje', 0, 1, 'L')
         
         # Ustawienie pozycji Y po nagłówku
         self.set_y(self.header_height + self.top_margin_after_header)
