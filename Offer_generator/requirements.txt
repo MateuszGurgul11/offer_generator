@@ -90,13 +90,12 @@ prompt_toolkit==3.0.48
 proto-plus==1.25.0
 protobuf==4.25.5
 psutil==6.1.1
-psycopg2==2.9.10
+psycopg2-binary==2.9.10
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyarrow==18.1.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
-PyAudio==0.2.14
 pycparser==2.22
 pydantic==2.10.4
 pydantic_core==2.27.2
