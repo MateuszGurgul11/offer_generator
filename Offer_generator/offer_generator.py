@@ -1,7 +1,7 @@
 from database import OfferDatabase
 from openai import OpenAI
 import json
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, IMAGES_DIR
 from fpdf import FPDF
 import tempfile
 import streamlit as st
@@ -411,11 +411,8 @@ class OfferTemplate(FPDF):
         self.image_x = 150
         self.image_width = 50
         
-        # Użyj ścieżki względnej do katalogu projektu
-        import os
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_dir = os.path.dirname(current_dir)  # Katalog nadrzędny
-        self.logo_path = os.path.join(project_dir, 'AutoAdaptacje', 'images', 'logo.png')
+        # Użyj ścieżki z konfiguracji
+        self.logo_path = os.path.join(IMAGES_DIR, 'logo.png')
         
         # Sprawdź czy plik logo istnieje
         if not os.path.exists(self.logo_path):
@@ -543,7 +540,8 @@ class OfferTemplate(FPDF):
             
         current_y = 70  # Początkowa pozycja Y (pod nagłówkiem)
         
-        for img_path in images:
+        for img_name in images:
+            img_path = os.path.join(IMAGES_DIR, img_name)
             if os.path.exists(img_path):
                 # Sprawdź czy jest miejsce na stronie
                 if current_y + self.image_width > self.page_break_trigger:
