@@ -5,13 +5,28 @@ import streamlit as st
 # Ładowanie zmiennych środowiskowych
 load_dotenv()
 
-# Konfiguracja ścieżek
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Konfiguracja ścieżek dla Streamlit Cloud
+if os.getenv('STREAMLIT_RUNTIME'):
+    BASE_DIR = '/mount/src/offer_generator'
+else:
+    # Lokalna ścieżka
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 IMAGES_DIR = os.path.join(BASE_DIR, 'images')
 
 # Utwórz folder images jeśli nie istnieje
 if not os.path.exists(IMAGES_DIR):
-    os.makedirs(IMAGES_DIR)
+    try:
+        os.makedirs(IMAGES_DIR)
+        print(f"Utworzono katalog: {IMAGES_DIR}")
+    except Exception as e:
+        print(f"Nie można utworzyć katalogu {IMAGES_DIR}: {str(e)}")
+else:
+    print(f"Katalog już istnieje: {IMAGES_DIR}")
+
+# Wyświetl informacje o ścieżkach
+print(f"BASE_DIR: {BASE_DIR}")
+print(f"IMAGES_DIR: {IMAGES_DIR}")
 
 # Próba pobrania klucza API z różnych źródeł
 OPENAI_API_KEY = (
