@@ -2,8 +2,16 @@ import os
 from dotenv import load_dotenv
 import streamlit as st
 
-# Próba załadowania zmiennych środowiskowych z pliku .env
+# Ładowanie zmiennych środowiskowych
 load_dotenv()
+
+# Konfiguracja ścieżek
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+IMAGES_DIR = os.path.join(BASE_DIR, 'images')
+
+# Utwórz folder images jeśli nie istnieje
+if not os.path.exists(IMAGES_DIR):
+    os.makedirs(IMAGES_DIR)
 
 # Próba pobrania klucza API z różnych źródeł
 OPENAI_API_KEY = (
