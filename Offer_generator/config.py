@@ -7,7 +7,7 @@ load_dotenv()
 
 # Konfiguracja ścieżek dla Streamlit Cloud
 if os.getenv('STREAMLIT_RUNTIME'):
-    BASE_DIR = '/mount/src/offer_generator'
+    BASE_DIR = '/mount/src/offer_generator/Offer_generator'
 else:
     # Lokalna ścieżka
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
