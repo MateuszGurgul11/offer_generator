@@ -21,6 +21,7 @@ def load_vehicle_data():
         
         # Konwersja danych do DataFrame
         df = pd.DataFrame(data, columns=columns)
+        st.write(df)
         
         return df
         
