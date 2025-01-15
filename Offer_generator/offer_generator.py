@@ -405,7 +405,24 @@ class OfferTemplate(FPDF):
         
         # Potem inicjalizujemy klasę bazową
         super().__init__()
-        self.set_auto_page_break(auto=True, margin=25)
+        self.header_height = 60
+        self.top_margin_after_header = 10
+        self.content_width = 190
+        self.image_x = 150
+        self.image_width = 50
+        
+        # Użyj ścieżki względnej do katalogu projektu
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.logo_path = os.path.join(current_dir, 'images', 'logo.png')
+        
+        # Jeśli nie ma logo, użyj tekstu
+        if not os.path.exists(self.logo_path):
+            logger.warning(f"Nie znaleziono pliku logo: {self.logo_path}")
+            self.has_logo = False
+        else:
+            self.has_logo = True
+            
         self.add_page()
         self.set_margins(10, 10, 10)
         
