@@ -4,7 +4,6 @@ anyio==4.8.0
 appnope==0.1.4
 asttokens==3.0.0
 attrs==24.3.0
-bigquery==0.0.44
 blinker==1.9.0
 CacheControl==0.14.2
 cachetools==5.5.0
@@ -140,3 +139,4 @@ uritemplate==3.0.1
 urllib3==2.3.0
 wcwidth==0.2.13
 zipp==3.21.0
+setuptools
