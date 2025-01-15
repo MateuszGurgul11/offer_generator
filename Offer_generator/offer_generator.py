@@ -414,9 +414,20 @@ class OfferTemplate(FPDF):
         # Użyj ścieżki z konfiguracji
         self.logo_path = os.path.join(IMAGES_DIR, 'logo.png')
         
+        # Dodaj więcej logowania
+        logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
+        logger.info(f"Próba znalezienia logo w: {self.logo_path}")
+        
         # Sprawdź czy plik logo istnieje
         if not os.path.exists(self.logo_path):
             logger.warning(f"Nie znaleziono pliku logo: {self.logo_path}")
+            # Sprawdź zawartość katalogu
+            if os.path.exists(IMAGES_DIR):
+                logger.info(f"Zawartość katalogu {IMAGES_DIR}:")
+                for file in os.listdir(IMAGES_DIR):
+                    logger.info(f"- {file}")
+            else:
+                logger.warning(f"Katalog {IMAGES_DIR} nie istnieje")
             self.has_logo = False
         else:
             logger.info(f"Znaleziono plik logo: {self.logo_path}")
