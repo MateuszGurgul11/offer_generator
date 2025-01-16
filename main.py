@@ -11,17 +11,20 @@ def load_vehicle_data():
         cursor = db.conn.cursor()
         cursor.execute("""
             SELECT 
-                id, marka, model, rok_produkcji, kubatura, klimatyzacja,
-                dostepnosc, ostatnia_aktualizacja
+                "Marka", "Model", "Kubatura (m³)",
+                "Zabudowy izotermiczne Cena (zł netto)",
+                "Sklejki Cena (zł netto)",
+                "Nadkola sklejka 12mm Cena zł netto"
             FROM samochody
         """)
         
-        columns = [desc[0] for desc in cursor.description]
+        columns = ["Marka", "Model", "Kubatura (m³)", 
+                  "Zabudowy izotermiczne Cena (zł netto)",
+                  "Sklejki Cena (zł netto)",
+                  "Nadkola sklejka 12mm Cena zł netto"]
         data = cursor.fetchall()
 
-        # Konwersja danych do DataFrame
         df = pd.DataFrame(data, columns=columns)
-        
         return df
         
     except Exception as e:
@@ -40,18 +43,15 @@ def create_grid(df, title, key_prefix):
         editable=False
     )
     
-    # Konfiguracja szerokości kolumn
-    gb.configure_column("id", width=70)
-    gb.configure_column("marka", width=100)
-    gb.configure_column("model", width=100)
-    gb.configure_column("rok_produkcji", width=100)
-    gb.configure_column("typ_nadwozia", width=100)
-    gb.configure_column("mozliwe_adaptacje", width=300)
+    # Konfiguracja szerokości kolumn - zaktualizowane nazwy
+    gb.configure_column("Marka", width=100)
+    gb.configure_column("Model", width=100)
+    gb.configure_column("Kubatura (m³)", width=100)
+    gb.configure_column("Zabudowy izotermiczne Cena (zł netto)", width=150)
+    gb.configure_column("Sklejki Cena (zł netto)", width=150)
+    gb.configure_column("Nadkola sklejka 12mm Cena zł netto", width=150)
     
     grid_options = gb.build()
-    
-    # Dodanie unikalnego klucza dla każdej tabeli
-    grid_key = f"grid_{key_prefix}_{title.lower().replace(' ', '_')}"
     
     return AgGrid(
         df,
@@ -59,7 +59,7 @@ def create_grid(df, title, key_prefix):
         fit_columns_on_grid_load=True,
         allow_unsafe_jscode=True,
         height=400,
-        key=grid_key  # Unikalny klucz dla każdej tabeli
+        key=f"grid_{key_prefix}_{title.lower().replace(' ', '_')}"
     )
 
 def show_statistics(df):
@@ -70,11 +70,10 @@ def show_statistics(df):
     
     with col1:
         st.metric("Liczba pojazdów", len(df))
-        
     
     # Wykres liczby pojazdów według marki
     st.subheader("Liczba pojazdów według marki")
-    brand_counts = df['marka'].value_counts()
+    brand_counts = df['Marka'].value_counts()
     st.bar_chart(brand_counts)
     
 
@@ -97,33 +96,23 @@ def main():
         
         with tabs[0]:
             # Filtry
-            col1, col2 = st.columns(2)
+            col1, _ = st.columns(2)
             
             with col1:
                 selected_brand = st.multiselect(
                     "Filtruj według marki",
-                    options=sorted(df['marka'].unique()),
+                    options=sorted(df['Marka'].unique()),
                     key="filter_brand"
-                )
-            
-            with col2:
-                min_year = st.number_input(
-                    "Minimalny rok produkcji",
-                    min_value=int(df['rok_produkcji'].min()),
-                    max_value=int(df['rok_produkcji'].max()),
-                    value=int(df['rok_produkcji'].min()),
-                    key="filter_year"
                 )
             
             # Aplikowanie filtrów
             filtered_df = df.copy()
             if selected_brand:
-                filtered_df = filtered_df[filtered_df['marka'].isin(selected_brand)]
-            filtered_df = filtered_df[filtered_df['rok_produkcji'] >= min_year]
+                filtered_df = filtered_df[filtered_df['Marka'].isin(selected_brand)]
             
             # Wyświetlanie danych z unikalnym kluczem
             create_grid(filtered_df, "Baza pojazdów", "main")
-            
+
         with tabs[1]:
             show_statistics(df)
     else:

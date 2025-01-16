@@ -22,24 +22,70 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def create_editable_grid(data, key, title):
-    """Tworzy edytowalną tabelkę AgGrid z zachowaniem stanu"""
+def calculate_total_cost():
+    """Oblicza cenę całkowitą na podstawie aktualnych danych w tabelkach"""
     try:
-        # Używamy stałego klucza dla każdej tabelki
-        session_key = f"data_{key}"
+        total = 0.0
         
-        # Inicjalizacja danych w sesji tylko jeśli nie istnieją
-        if session_key not in st.session_state:
-            if isinstance(data, dict):
-                df = pd.DataFrame([
-                    {'Pole': k, 'Wartość': v} for k, v in data.items()
-                ])
-            else:
-                df = pd.DataFrame(data)
-            st.session_state[session_key] = df
+        # Koszty pojazdu
+        if 'data_dane_pojazdu_grid' in st.session_state:
+            pojazd_df = st.session_state['data_dane_pojazdu_grid']
+            for _, row in pojazd_df.iterrows():
+                if 'cena' in row['Pole'].lower():
+                    try:
+                        value = row['Wartość'].replace('zł', '').strip()
+                        if value:
+                            total += float(value)
+                    except (ValueError, TypeError):
+                        logger.warning(f"Nie można przekonwertować wartości: {row['Wartość']}")
         
-        # Konfiguracja opcji tabelki
-        gb = GridOptionsBuilder.from_dataframe(st.session_state[session_key])
+        # Koszt agregatu
+        if 'data_agregat_grid' in st.session_state:
+            agregat_df = st.session_state['data_agregat_grid']
+            cena_row = agregat_df[agregat_df['Pole'] == 'cena_cennikowa']
+            if not cena_row.empty:
+                try:
+                    value = cena_row.iloc[0]['Wartość'].replace('zł', '').strip()
+                    if value:
+                        total += float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"Nie można przekonwertować ceny agregatu: {cena_row.iloc[0]['Wartość']}")
+        
+        # Koszt grzania
+        if 'data_grzanie_grid' in st.session_state:
+            grzanie_df = st.session_state['data_grzanie_grid']
+            cena_row = grzanie_df[grzanie_df['Pole'] == 'cena']
+            if not cena_row.empty:
+                try:
+                    value = cena_row.iloc[0]['Wartość'].replace('zł', '').strip()
+                    if value:
+                        total += float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"Nie można przekonwertować ceny grzania: {cena_row.iloc[0]['Wartość']}")
+        
+        # Koszt zestawu podgrzewacza
+        if 'data_zestaw_podgrzewacza_grid' in st.session_state:
+            zestaw_df = st.session_state['data_zestaw_podgrzewacza_grid']
+            cena_row = zestaw_df[zestaw_df['Pole'] == 'cena']
+            if not cena_row.empty:
+                try:
+                    value = cena_row.iloc[0]['Wartość'].replace('zł', '').strip()
+                    if value:
+                        total += float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"Nie można przekonwertować ceny zestawu: {cena_row.iloc[0]['Wartość']}")
+        
+        logger.info(f"Obliczona cena całkowita: {total}")
+        return total
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas obliczania ceny całkowitej: {str(e)}")
+        return 0.0
+
+def create_editable_grid(data, key, title):
+    """Tworzy edytowalną tabelkę AgGrid"""
+    try:
+        gb = GridOptionsBuilder.from_dataframe(data)
         gb.configure_default_column(
             editable=True,
             resizable=True,
@@ -50,9 +96,9 @@ def create_editable_grid(data, key, title):
         gb.configure_selection('single')
         grid_options = gb.build()
         
-        st.subheader(title)
+        st.write(f"### {title}")
         grid_response = AgGrid(
-            st.session_state[session_key],
+            data,
             gridOptions=grid_options,
             update_mode=GridUpdateMode.VALUE_CHANGED,
             fit_columns_on_grid_load=True,
@@ -61,7 +107,15 @@ def create_editable_grid(data, key, title):
         )
         
         # Aktualizacja danych w sesji
-        st.session_state[session_key] = grid_response['data']
+        st.session_state[f'data_{key}'] = grid_response['data']
+        
+        # Aktualizacja ceny całkowitej po każdej edycji
+        if any('cena' in str(col).lower() for col in data['Pole']):
+            total_cost = calculate_total_cost()
+            if 'data_szczegoly_grid' in st.session_state:
+                szczegoly_df = st.session_state['data_szczegoly_grid']
+                szczegoly_df.loc[szczegoly_df['Pole'] == 'Cena calkowita netto', 'Wartość'] = f"{total_cost:.2f} zł"
+                st.session_state['data_szczegoly_grid'] = szczegoly_df
         
         return grid_response['data']
         
@@ -78,108 +132,83 @@ def clear_session_data():
             del st.session_state[key]
 
 def save_to_session(offer_data):
-    """Zapisuje dane oferty do sesji z odpowiednimi typami danych"""
-    if offer_data:
-        st.session_state['current_offer'] = offer_data
-        
+    """Zapisuje dane oferty do sesji"""
+    try:
         # Dane firmy
-        if 'dane_firmy' in offer_data:
-            dane_firmy_data = [
-                {'Pole': k, 'Wartość': str(v)} 
-                for k, v in offer_data['dane_firmy'].items()
-            ]
-            st.session_state['data_dane_firmy_grid'] = pd.DataFrame(dane_firmy_data)
+        dane_firmy_data = [
+            {'Pole': 'nazwa', 'Wartość': str(offer_data['dane_firmy'].get('nazwa', ''))},
+            {'Pole': 'adres', 'Wartość': str(offer_data['dane_firmy'].get('adres', ''))},
+            {'Pole': 'nip', 'Wartość': str(offer_data['dane_firmy'].get('nip', ''))},
+            {'Pole': 'osoba_odpowiedzialna', 'Wartość': str(offer_data['dane_firmy'].get('osoba_odpowiedzialna', ''))},
+            {'Pole': 'telefon', 'Wartość': str(offer_data['dane_firmy'].get('telefon', ''))},
+            {'Pole': 'email', 'Wartość': str(offer_data['dane_firmy'].get('email', ''))}
+        ]
+        st.session_state['data_dane_firmy_grid'] = pd.DataFrame(dane_firmy_data)
         
         # Dane pojazdu
-        if 'pojazd' in offer_data:
-            dane_pojazdu_data = [
-                {'Pole': k, 'Wartość': str(v)} 
-                for k, v in offer_data['pojazd'].items()
-            ]
-            st.session_state['data_dane_pojazdu_grid'] = pd.DataFrame(dane_pojazdu_data)
-        
-        # Dane zabudowy
-        if 'zabudowa' in offer_data:
-            zabudowa = offer_data['zabudowa']
-            zabudowa_data = []
-            
-            # Podstawowe pola
-            basic_fields = ['typ', 'temperatura', 'cena_netto']
-            for field in basic_fields:
-                zabudowa_data.append({
-                    'Pole': field,
-                    'Wartość': str(zabudowa.get(field, ''))
-                })
-            
-            # Materiał izolacyjny
-            if 'material_izolacyjny' in zabudowa:
-                material = zabudowa['material_izolacyjny']
-                zabudowa_data.append({
-                    'Pole': 'material_izolacyjny',
-                    'Wartość': f"typ: {material.get('typ', '')}, grubość: {material.get('grubosc', '')}"
-                })
-            
-            # Pozostałe pola
-            other_fields = ['sciany_sufit', 'podloga']
-            for field in other_fields:
-                zabudowa_data.append({
-                    'Pole': field,
-                    'Wartość': str(zabudowa.get(field, ''))
-                })
-            
-            # Wykonczenia
-            wykonczenia = zabudowa.get('wykonczenia', [])
-            if isinstance(wykonczenia, list):
-                wykonczenia_str = ', '.join(wykonczenia)
-            else:
-                wykonczenia_str = str(wykonczenia)
-            zabudowa_data.append({
-                'Pole': 'wykonczenia',
-                'Wartość': wykonczenia_str
-            })
-            
-            st.session_state['data_zabudowa_grid'] = pd.DataFrame(zabudowa_data)
+        pojazd = offer_data.get('pojazd', {})
+        pojazd_data = [
+            {'Pole': 'marka', 'Wartość': str(pojazd.get('marka', ''))},
+            {'Pole': 'model', 'Wartość': str(pojazd.get('model', ''))},
+            {'Pole': 'kubatura', 'Wartość': str(pojazd.get('kubatura', ''))},
+            {'Pole': 'zabudowa_cena', 'Wartość': f"{str(pojazd.get('zabudowa_cena', '0'))} zł"},
+            {'Pole': 'sklejki_cena', 'Wartość': f"{str(pojazd.get('sklejki_cena', '0'))} zł"},
+            {'Pole': 'nadkola_cena', 'Wartość': f"{str(pojazd.get('nadkola_cena', '0'))} zł"}
+        ]
+        st.session_state['data_dane_pojazdu_grid'] = pd.DataFrame(pojazd_data)
         
         # Dane agregatu
-        if 'agregat' in offer_data:
-            agregat = offer_data['agregat']
-            agregat_data = [
-                {'Pole': 'model', 'Wartość': str(agregat.get('model', ''))},
-                {'Pole': 'typ', 'Wartość': str(agregat.get('typ', ''))},
-                {'Pole': 'czynnik', 'Wartość': str(agregat.get('czynnik', ''))},
-                {'Pole': 'cena_netto', 'Wartość': f"{str(agregat.get('cena_netto', '0'))} zł"}
-            ]
-            st.session_state['data_agregat_grid'] = pd.DataFrame(agregat_data)
+        agregat = offer_data.get('agregat', {})
+        agregat_data = [
+            {'Pole': 'model', 'Wartość': str(agregat.get('model', ''))},
+            {'Pole': 'daikin_product_line', 'Wartość': str(agregat.get('daikin_product_line', ''))},
+            {'Pole': 'refrigerant', 'Wartość': str(agregat.get('refrigerant', ''))},
+            {'Pole': 'instalacja_elektryczna', 'Wartość': str(agregat.get('instalacja_elektryczna', ''))},
+            {'Pole': 'tylko_drogowy', 'Wartość': str(agregat.get('tylko_drogowy', ''))},
+            {'Pole': 'drogowy_siec_230V', 'Wartość': str(agregat.get('drogowy_siec_230V', ''))},
+            {'Pole': 'drogowy_siec_400V', 'Wartość': str(agregat.get('drogowy_siec_400V', ''))},
+            {'Pole': 'cena_cennikowa', 'Wartość': f"{str(agregat.get('cena_cennikowa', '0'))} zł"},
+            {'Pole': 'cooling_capacity_0C', 'Wartość': str(agregat.get('cooling_capacity_0C', ''))},
+            {'Pole': 'cooling_capacity_-20C', 'Wartość': str(agregat.get('cooling_capacity_-20C', ''))},
+            {'Pole': 'recommended_van_size_0C', 'Wartość': str(agregat.get('recommended_van_size_0C', ''))},
+            {'Pole': 'recommended_van_size_-20C', 'Wartość': str(agregat.get('recommended_van_size_-20C', ''))},
+            {'Pole': 'uwagi', 'Wartość': str(agregat.get('uwagi', ''))},
+            {'Pole': 'temperature_range', 'Wartość': str(agregat.get('temperature_range', ''))}
+        ]
+        st.session_state['data_agregat_grid'] = pd.DataFrame(agregat_data)
         
-        # Dane montażu
-        if 'montaz' in offer_data:
-            montaz = offer_data['montaz']
-            montaz_data = []
-            
-            # Mocowanie sprężarki
-            if 'mocowanie_sprezarka' in montaz:
-                mocowanie = montaz['mocowanie_sprezarka']
-                montaz_data.append({
-                    'Pole': 'mocowanie_sprezarka',
-                    'Wartość': f"opis: {mocowanie.get('opis', '')}, cena: {mocowanie.get('cena_netto', '0')} zł"
-                })
-            
-            # Montaż agregatu
-            if 'montaz_agregatu' in montaz:
-                montaz_data.append({
-                    'Pole': 'montaz_agregatu',
-                    'Wartość': f"cena: {montaz['montaz_agregatu'].get('cena_netto', '0')} zł"
-                })
-            
-            st.session_state['data_montaz_grid'] = pd.DataFrame(montaz_data)
+        # Dane grzania
+        if 'grzanie' in offer_data and offer_data['grzanie']:
+            grzanie = offer_data['grzanie']
+            grzanie_data = [
+                {'Pole': 'model_jednostki', 'Wartość': str(grzanie.get('model_jednostki', ''))},
+                {'Pole': 'model_opcji', 'Wartość': str(grzanie.get('model_opcji', ''))},
+                {'Pole': 'cena', 'Wartość': f"{str(grzanie.get('cena', '0'))} zł"}
+            ]
+            st.session_state['data_grzanie_grid'] = pd.DataFrame(grzanie_data)
+        
+        # Dane zestawu podgrzewacza
+        if 'zestaw_podgrzewacza' in offer_data and offer_data['zestaw_podgrzewacza']:
+            zestaw = offer_data['zestaw_podgrzewacza']
+            zestaw_data = [
+                {'Pole': 'Grzatki elektryczne', 'Wartość': str(zestaw.get('grzatki_elektryczne', ''))},
+                {'Pole': 'Model opcji', 'Wartość': str(zestaw.get('model_opcji', ''))},
+                {'Pole': 'cena', 'Wartość': f"{str(zestaw.get('cena', '0'))} zł"}
+            ]
+            st.session_state['data_zestaw_podgrzewacza_grid'] = pd.DataFrame(zestaw_data)
         
         # Szczegóły oferty
         szczegoly_data = [
-            {'Pole': 'data_oferty', 'Wartość': str(offer_data.get('data_oferty', ''))},
-            {'Pole': 'numer_oferty', 'Wartość': str(offer_data.get('numer_oferty', ''))},
-            {'Pole': 'cena_calkowita_netto', 'Wartość': f"{str(offer_data.get('cena_calkowita_netto', '0'))} zł"}
+            {'Pole': 'Data oferty', 'Wartość': str(offer_data.get('data_oferty', ''))},
+            {'Pole': 'Numer oferty', 'Wartość': str(offer_data.get('numer_oferty', ''))},
+            {'Pole': 'Cena calkowita netto', 'Wartość': f"{str(offer_data.get('cena_calkowita_netto', '0'))} zł"}
         ]
         st.session_state['data_szczegoly_grid'] = pd.DataFrame(szczegoly_data)
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas zapisywania danych do sesji: {str(e)}")
+        logger.error(f"Szczegóły błędu:\n{traceback.format_exc()}")
+        st.error("Wystąpił błąd podczas zapisywania danych")
 
 def load_from_session():
     """Ładuje dane oferty z sesji"""
@@ -205,6 +234,7 @@ def main():
             key="offer_input"
         )
         
+        # Generowanie oferty
         if st.button("Generuj ofertę"):
             logger.info("Rozpoczęto generowanie oferty")
             if offer_text:
@@ -214,10 +244,11 @@ def main():
                         generator = OfferGenerator(db)
                         logger.debug("Inicjalizacja generatora zakończona")
                         
-                        offer_data, pdf_path = generator.create_offer(offer_text)
-                        if offer_data and pdf_path:
+                        offer_data, missing_data = generator.create_offer(offer_text)
+                        
+                        if offer_data:
                             save_to_session(offer_data)
-                            st.session_state['last_pdf_path'] = pdf_path
+                            st.session_state['missing_data'] = missing_data
                             st.success("Pomyślnie wygenerowano ofertę!")
                     except Exception as e:
                         logger.error(f"Błąd podczas generowania oferty: {str(e)}")
@@ -225,74 +256,82 @@ def main():
             else:
                 st.warning("Proszę wprowadzić treść oferty")
 
-        # Wyświetlanie zapisanych danych
-        offer_data = load_from_session()
-        if offer_data:
+        # Wyświetlanie tabelek (tylko jeśli są dane w sesji)
+        if any(key.startswith('data_') for key in st.session_state.keys()):
             st.subheader("Wygenerowana oferta")
-            tabs = st.tabs(["Dane firmy", "Pojazd", "Zabudowa i agregat", "Szczegóły", "PDF"])
+            tabs = st.tabs(["Dane firmy", "Pojazd", "Agregat", "Grzanie", "Szczegóły", "PDF"])
             
             with tabs[0]:
-                dane_firmy = create_editable_grid(
-                    st.session_state.get('data_dane_firmy_grid', pd.DataFrame()),
-                    'dane_firmy_grid',
-                    "Dane firmy"
-                )
+                if 'data_dane_firmy_grid' in st.session_state:
+                    create_editable_grid(
+                        st.session_state['data_dane_firmy_grid'],
+                        'dane_firmy_grid',
+                        "Dane firmy"
+                    )
             
             with tabs[1]:
-                dane_pojazdu = create_editable_grid(
-                    st.session_state.get('data_dane_pojazdu_grid', pd.DataFrame()),
-                    'dane_pojazdu_grid',
-                    "Dane pojazdu"
-                )
+                if 'data_dane_pojazdu_grid' in st.session_state:
+                    create_editable_grid(
+                        st.session_state['data_dane_pojazdu_grid'],
+                        'dane_pojazdu_grid',
+                        "Dane pojazdu"
+                    )
             
             with tabs[2]:
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if 'data_zabudowa_grid' in st.session_state:
-                        zabudowa = create_editable_grid(
-                            st.session_state['data_zabudowa_grid'],
-                            'zabudowa_grid',
-                            "Zabudowa"
-                        )
-                
-                with col2:
-                    if 'data_agregat_grid' in st.session_state:
-                        agregat = create_editable_grid(
-                            st.session_state['data_agregat_grid'],
-                            'agregat_grid',
-                            "Agregat"
-                        )
-                
-                if 'data_montaz_grid' in st.session_state:
-                    montaz = create_editable_grid(
-                        st.session_state['data_montaz_grid'],
-                        'montaz_grid',
-                        "Montaż"
+                if 'data_agregat_grid' in st.session_state:
+                    create_editable_grid(
+                        st.session_state['data_agregat_grid'],
+                        'agregat_grid',
+                        "Agregat"
                     )
             
             with tabs[3]:
+                col1, col2 = st.columns(2)
+                with col1:
+                    if 'data_grzanie_grid' in st.session_state:
+                        create_editable_grid(
+                            st.session_state['data_grzanie_grid'],
+                            'grzanie_grid',
+                            "Grzanie"
+                        )
+                
+                with col2:
+                    if 'data_zestaw_podgrzewacza_grid' in st.session_state:
+                        create_editable_grid(
+                            st.session_state['data_zestaw_podgrzewacza_grid'],
+                            'zestaw_podgrzewacza_grid',
+                            "Zestaw podgrzewacza"
+                        )
+            
+            with tabs[4]:
                 if 'data_szczegoly_grid' in st.session_state:
-                    szczegoly = create_editable_grid(
+                    create_editable_grid(
                         st.session_state['data_szczegoly_grid'],
                         'szczegoly_grid',
                         "Szczegóły oferty"
                     )
             
-            with tabs[4]:
-                show_pdf_buttons()
-                st.subheader("Zdjęcia")
+            with tabs[5]:
+                st.write("### Generowanie PDF")
                 
-                # Ustawiamy stałe zdjęcia z folderu images
+                # Dodaj informację o brakujących danych
+                if 'missing_data' in st.session_state and st.session_state['missing_data']:
+                    st.warning("Uwaga: Brakujące dane w ofercie:")
+                    for field in st.session_state['missing_data']:
+                        st.warning(f"- {field}")
+                
+                # Przyciski do obsługi PDF
+                show_pdf_buttons()
+                
+                # Zdjęcia
+                st.subheader("Zdjęcia")
                 if 'offer_images' not in st.session_state:
-                    # Lista stałych zdjęć
                     st.session_state['offer_images'] = [
                         'images/test1.jpeg',
                         'images/test2.jpeg',
                         'images/test3.jpeg',
                     ]
                 
-                # Wyświetlamy podgląd zdjęć
                 cols = st.columns(2)
                 for idx, image_path in enumerate(st.session_state['offer_images']):
                     with cols[idx % 2]:
@@ -305,128 +344,88 @@ def main():
 def update_offer_from_grids():
     """Aktualizuje dane oferty na podstawie edytowanych tabelek"""
     try:
-        required_keys = [
-            'data_dane_firmy_grid',
-            'data_dane_pojazdu_grid',
-            'data_zabudowa_grid',
-            'data_agregat_grid',
-            'data_montaz_grid',
-            'data_szczegoly_grid'
-        ]
-        
-        if all(key in st.session_state for key in required_keys):
+        if all(key in st.session_state for key in ['data_dane_firmy_grid', 'data_dane_pojazdu_grid', 'data_agregat_grid']):
             # Konwersja danych z tabelek z powrotem do struktury oferty
-            dane_firmy = dict(zip(
-                st.session_state['data_dane_firmy_grid']['Pole'],
-                st.session_state['data_dane_firmy_grid']['Wartość']
-            ))
-            
-            dane_pojazdu = dict(zip(
-                st.session_state['data_dane_pojazdu_grid']['Pole'],
-                st.session_state['data_dane_pojazdu_grid']['Wartość']
-            ))
-            
-            # Konwersja danych zabudowy
-            zabudowa_df = st.session_state['data_zabudowa_grid']
-            zabudowa = {}
-            for _, row in zabudowa_df.iterrows():
-                if row['Pole'] == 'material_izolacyjny':
-                    # Parsowanie material_izolacyjny z formatu "typ: X, grubość: Y"
-                    material_str = row['Wartość']
-                    typ = material_str.split('grubość:')[0].replace('typ:', '').strip()
-                    grubosc = material_str.split('grubość:')[1].strip()
-                    zabudowa['material_izolacyjny'] = {'typ': typ, 'grubosc': grubosc}
-                else:
-                    zabudowa[row['Pole']] = row['Wartość']
-            
-            # Konwersja danych agregatu
-            agregat_df = st.session_state['data_agregat_grid']
-            agregat = {}
-            for _, row in agregat_df.iterrows():
-                wartosc = row['Wartość']
-                if 'zł' in str(wartosc):
-                    wartosc = wartosc.replace(' zł', '')
-                agregat[row['Pole']] = wartosc
-            
-            # Konwersja danych montażu
-            montaz_df = st.session_state['data_montaz_grid']
-            montaz = {
-                'mocowanie_sprezarka': {'opis': '', 'cena_netto': 0},
-                'montaz_agregatu': {'cena_netto': 0}
+            updated_offer = {
+                'dane_firmy': dict(zip(
+                    st.session_state['data_dane_firmy_grid']['Pole'],
+                    st.session_state['data_dane_firmy_grid']['Wartość']
+                )),
+                'pojazd': dict(zip(
+                    st.session_state['data_dane_pojazdu_grid']['Pole'],
+                    st.session_state['data_dane_pojazdu_grid']['Wartość'].str.replace(' zł', '')
+                )),
+                'agregat': dict(zip(
+                    st.session_state['data_agregat_grid']['Pole'],
+                    st.session_state['data_agregat_grid']['Wartość'].str.replace(' zł', '')
+                ))
             }
             
-            for _, row in montaz_df.iterrows():
-                if row['Pole'] == 'mocowanie_sprezarka':
-                    opis = row['Wartość'].split('cena:')[0].replace('opis:', '').strip()
-                    cena = row['Wartość'].split('cena:')[1].replace('zł', '').strip()
-                    montaz['mocowanie_sprezarka'] = {'opis': opis, 'cena_netto': float(cena)}
-                elif row['Pole'] == 'montaz_agregatu':
-                    cena = row['Wartość'].split('cena:')[1].replace('zł', '').strip()
-                    montaz['montaz_agregatu'] = {'cena_netto': float(cena)}
+            # Dodaj opcjonalne sekcje jeśli istnieją
+            if 'data_grzanie_grid' in st.session_state:
+                updated_offer['grzanie'] = dict(zip(
+                    st.session_state['data_grzanie_grid']['Pole'],
+                    st.session_state['data_grzanie_grid']['Wartość'].str.replace(' zł', '')
+                ))
             
-            # Konwersja szczegółów oferty
-            szczegoly_df = st.session_state['data_szczegoly_grid']
-            szczegoly = {}
-            for _, row in szczegoly_df.iterrows():
-                pole = row['Pole']
-                wartosc = row['Wartość']
-                if 'zł' in str(wartosc):
-                    wartosc = wartosc.replace(' zł', '')
-                szczegoly[pole] = wartosc
+            if 'data_zestaw_podgrzewacza_grid' in st.session_state:
+                updated_offer['zestaw_podgrzewacza'] = dict(zip(
+                    st.session_state['data_zestaw_podgrzewacza_grid']['Pole'],
+                    st.session_state['data_zestaw_podgrzewacza_grid']['Wartość'].str.replace(' zł', '')
+                ))
             
-            # Tworzenie zaktualizowanej oferty
-            updated_offer = {
-                'dane_firmy': dane_firmy,
-                'pojazd': dane_pojazdu,
-                'zabudowa': zabudowa,
-                'agregat': agregat,
-                'montaz': montaz,
+            # Dodaj szczegóły oferty
+            szczegoly = dict(zip(
+                st.session_state['data_szczegoly_grid']['Pole'],
+                st.session_state['data_szczegoly_grid']['Wartość'].str.replace(' zł', '')
+            ))
+            updated_offer.update({
                 'data_oferty': szczegoly.get('data_oferty', ''),
                 'numer_oferty': szczegoly.get('numer_oferty', ''),
                 'cena_calkowita_netto': float(szczegoly.get('cena_calkowita_netto', '0'))
-            }
+            })
             
             return updated_offer
             
     except Exception as e:
         logger.error(f"Błąd podczas aktualizacji oferty: {str(e)}")
-        logger.error(f"Szczegóły błędu:\n{traceback.format_exc()}")
         st.error("Nie udało się zaktualizować oferty")
     return None
 
 def show_pdf_buttons():
     """Wyświetla przyciski do obsługi PDF"""
-    if 'last_pdf_path' in st.session_state:
-        # Aktualizacja oferty z najnowszymi danymi
-        updated_offer = update_offer_from_grids()
-        if updated_offer:
-            # Generowanie nowego PDF
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Generuj PDF z aktualnych danych"):
             try:
-                generator = OfferGenerator(OfferDatabase())
-                new_pdf_path = generator._generate_pdf(updated_offer)
-                
-                with open(new_pdf_path, "rb") as pdf_file:
-                    pdf_bytes = pdf_file.read()
-                    st.download_button(
-                        label="Pobierz ofertę (PDF)",
-                        data=pdf_bytes,
-                        file_name="oferta_autoadaptacje.pdf",
-                        mime="application/pdf"
-                    )
-                
-                # Usuwanie starego pliku PDF
-                if os.path.exists(st.session_state['last_pdf_path']):
-                    os.unlink(st.session_state['last_pdf_path'])
-                
-                # Aktualizacja ścieżki w sesji
-                st.session_state['last_pdf_path'] = new_pdf_path
-                st.session_state['current_offer'] = updated_offer
-                
+                # Pobierz aktualne dane z tabelek
+                updated_offer = update_offer_from_grids()
+                if updated_offer:
+                    # Generowanie nowego PDF
+                    generator = OfferGenerator(OfferDatabase())
+                    new_pdf_path = generator._generate_pdf(updated_offer, [])  # Puste missing_data
+                    
+                    if new_pdf_path:
+                        st.session_state['last_pdf_path'] = new_pdf_path
+                        st.session_state['current_offer'] = updated_offer
+                        st.success("PDF został wygenerowany!")
+                else:
+                    st.error("Nie można wygenerować PDF - brak wymaganych danych")
             except Exception as e:
                 logger.error(f"Błąd podczas generowania PDF: {str(e)}")
                 st.error("Nie udało się wygenerować PDF")
-        else:
-            st.error("Nie można zaktualizować oferty - brak wymaganych danych")
+    
+    with col2:
+        if 'last_pdf_path' in st.session_state and os.path.exists(st.session_state['last_pdf_path']):
+            with open(st.session_state['last_pdf_path'], "rb") as pdf_file:
+                pdf_bytes = pdf_file.read()
+                st.download_button(
+                    label="Pobierz ofertę (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"oferta_autoadaptacje_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf"
+                )
 
 def show_filters(df):
     with st.container():
