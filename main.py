@@ -18,13 +18,9 @@ def load_vehicle_data():
         
         columns = [desc[0] for desc in cursor.description]
         data = cursor.fetchall()
-        
-        st.write("Znalezione rekordy:", len(data))
-        st.write("Kolumny:", columns)
-        
+
         # Konwersja danych do DataFrame
         df = pd.DataFrame(data, columns=columns)
-        st.write(df)
         
         return df
         

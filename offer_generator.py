@@ -125,9 +125,12 @@ class OfferGenerator:
                 ]
             }
 
-            # Zaktualizowany prompt z poprawioną strukturą JSON
+            # Zaktualizowany prompt z instrukcjami wyszukiwania danych firmy
             analysis_prompt = f"""
             Przeanalizuj tekst oferty i wybierz odpowiednie dane z bazy danych.
+            
+            Jeśli w tekście znajduje się nazwa firmy lub NIP, wyszukaj dodatkowe informacje o firmie w publicznie dostępnych źródłach, w tym na stronie https://aleo.com/pl/.
+            Wykorzystaj te informacje do uzupełnienia danych firmy w ofercie.
             
             Dostępne dane w bazie:
             {json.dumps(db_context, indent=2, ensure_ascii=False)}
@@ -183,6 +186,12 @@ class OfferGenerator:
                     }}
                 }}
             }}
+            
+            Podczas wyszukiwania danych firmy:
+            1. Jeśli podano NIP - użyj go jako głównego identyfikatora do wyszukiwania
+            2. Jeśli podano nazwę firmy - wyszukaj po nazwie
+            3. Zweryfikuj znalezione dane przez porównanie z innymi dostępnymi informacjami
+            4. Uzupełnij wszystkie możliwe pola w sekcji dane_firmy
             """
 
             # Analiza tekstu oferty
