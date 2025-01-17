@@ -10,7 +10,26 @@ import os
 import traceback
 from datetime import datetime
 
+# Konfiguracja logowania
+logging.basicConfig(
+    level=logging.WARNING,  # Zmiana z DEBUG/INFO na WARNING
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        # Ograniczenie rozmiaru pliku logów do 1MB z max 3 backupami
+        logging.handlers.RotatingFileHandler(
+            'app.log',
+            maxBytes=1_000_000,  # 1MB
+            backupCount=3
+        )
+    ]
+)
+
 logger = logging.getLogger(__name__)
+
+# Wyłączenie niepotrzebnych logów z bibliotek
+logging.getLogger('PIL').setLevel(logging.WARNING)
+logging.getLogger('streamlit').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 def calculate_attachments_cost(prefix="", render_ui=True):
     """Oblicza koszt dodatkowego wyposażenia i zapisuje wybrane opcje w session_state"""

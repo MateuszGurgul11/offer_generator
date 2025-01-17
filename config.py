@@ -1,10 +1,13 @@
 import os
+from dotenv import load_dotenv
 import streamlit as st
 
 # Próba załadowania zmiennych środowiskowych z pliku .env
+load_dotenv()
 
 # Próba pobrania klucza API z różnych źródeł
 OPENAI_API_KEY = (
+    os.getenv('OPENAI_API_KEY') or  # Z pliku .env
     st.secrets.get("OPENAI_API_KEY") or  # Z sekretów Streamlit
     None  # Jeśli nie znaleziono
 )
