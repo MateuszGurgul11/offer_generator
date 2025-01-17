@@ -12,6 +12,150 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+def calculate_attachments_cost(prefix="", render_ui=True):
+    """Oblicza koszt dodatkowego wyposażenia i zapisuje wybrane opcje w session_state"""
+    total_cost = 0
+    selected_options = {}
+    
+    with st.sidebar:
+        st.header("Dodatkowe wyposażenie")
+        
+        # Sekcja: Izolacja
+        st.subheader("Izolacja")
+        if st.checkbox("Izoterma 0st.C", value=False, key=f"{prefix}izoterma_0st_c"):
+            total_cost += 100
+            selected_options['izoterma_0st_c'] = True
+        if st.checkbox("Chłodnia -20st.C", value=False, key=f"{prefix}chlodnia_-20st_c"):
+            total_cost += 100
+            selected_options['chlodnia_-20st_c'] = True
+        if st.checkbox("Atest PZH", value=False, key=f"{prefix}atest_pzh"):
+            total_cost += 100
+            selected_options['atest_pzh'] = True
+
+        # Sekcja: Materiały
+        st.subheader("Materiały")
+        materiał_izolacyjny = st.checkbox("Materiał izolacyjny", key=f"{prefix}material_izolacyjny")
+        if materiał_izolacyjny:
+            selected_options['material_izolacyjny'] = True
+            if st.checkbox("Pianka poliuretanowa 40mm", key=f"{prefix}pianka_40mm"):
+                total_cost += 100
+                selected_options['pianka_40mm'] = True
+            if st.checkbox("Pianka poliuretanowa 80mm", key=f"{prefix}pianka_80mm"):
+                total_cost += 100
+                selected_options['pianka_80mm'] = True
+
+        # Sekcja: Wykończenie
+        st.subheader("Wykończenie")
+        if st.checkbox("Ściany, sufity: laminat gładki biały", key=f"{prefix}laminat_bialy"):
+            total_cost += 100
+            selected_options['laminat_bialy'] = True
+
+        # Sekcja: Podłoga
+        st.subheader("Podłoga")
+        podloga = st.checkbox("Podłoga", key=f"{prefix}podloga")
+        if podloga:
+            selected_options['podloga'] = True
+            if st.checkbox("Wylewka antypoślizgowa", key=f"{prefix}wylewka_anty_slizgowa"):
+                total_cost += 100
+                selected_options['wylewka_anty_slizgowa'] = True
+            if st.checkbox("Blacha aluminiowa ryflowana", key=f"{prefix}blacha_ryflowana"):
+                total_cost += 100
+                selected_options['blacha_ryflowana'] = True
+
+        # Sekcja: Listwy
+        st.subheader("Listwy")
+        listwa_przypodlogowa = st.checkbox("Listwa przypodłogowa na ścianach", key=f"{prefix}listwa_przypodlogowa")
+        if listwa_przypodlogowa:
+            selected_options['listwa_przypodlogowa'] = True
+            if st.checkbox("Aluminiowa biała", key=f"{prefix}aluminiowa_biala"):
+                total_cost += 100
+                selected_options['aluminiowa_biala'] = True
+            if st.checkbox("Aluminiowa srebrna", key=f"{prefix}aluminiowa_srebrna"):
+                total_cost += 100
+                selected_options['aluminiowa_srebrna'] = True
+            if st.checkbox("Stal nierdzewna", key=f"{prefix}stal_nierdzewna"):
+                total_cost += 100
+                selected_options['stal_nierdzewna'] = True
+            if st.checkbox("Blacha aluminiowa ryflowana", key=f"{prefix}blacha_ryflowana"):
+                total_cost += 100
+                selected_options['blacha_ryflowana'] = True
+            if st.checkbox("Brak", key=f"{prefix}brak"):
+                total_cost += 0
+                selected_options['brak'] = True
+
+        # Sekcja: Oświetlenie
+        st.subheader("Oświetlenie")
+        if st.checkbox("Oświetlenie LED standard (01702)", key=f"{prefix}oswietlenie_led_standard"):
+            total_cost += 100
+            selected_options['oswietlenie_led_standard'] = True
+        if st.checkbox("Oświetlenie LED wzmocnione (01660)", key=f"{prefix}oswietlenie_led_wzmocnione"):
+            total_cost += 100
+            selected_options['oswietlenie_led_wzmocnione'] = True
+
+        # Sekcja: Drzwi
+        st.subheader("Drzwi")
+        drzwi_boczne = st.checkbox("Drzwi boczne", key=f"{prefix}drzwi_boczne")
+        if drzwi_boczne:
+            selected_options['drzwi_boczne'] = True
+            if st.checkbox("Wewnętrzne", key=f"{prefix}drzwi_boczne_wewnetrzne"):
+                total_cost += 100
+                selected_options['drzwi_boczne_wewnetrzne'] = True
+            if st.checkbox("Normalnie otwierane", key=f"{prefix}drzwi_boczne_normalnie"):
+                total_cost += 100
+                selected_options['drzwi_boczne_normalnie'] = True
+            if st.checkbox("Brak", key=f"{prefix}brak"):
+                total_cost += 0
+                selected_options['brak'] = True
+
+        if st.checkbox("Drzwi tylne grube", key=f"{prefix}drzwi_tylne_grube"):
+            total_cost += 100
+            selected_options['drzwi_tylne_grube'] = True
+        if st.checkbox("Futryna drzwi tylnych", key=f"{prefix}futryna_drzwi_tylnych"):
+            total_cost += 100
+            selected_options['futryna_drzwi_tylnych'] = True
+
+        # Sekcja: Nadkola
+        st.subheader("Nadkola")
+        nadkola = st.checkbox("Nadkola", key=f"{prefix}nadkola")
+        if nadkola:
+            selected_options['nadkola'] = True
+            if st.checkbox("Odlew z laminatu", key=f"{prefix}nadkola_odlew_laminat"):
+                total_cost += 100
+                selected_options['nadkola_odlew_laminat'] = True
+            if st.checkbox("Kwadratowe wzmocnienie kątownikami", key=f"{prefix}nadkola_wzmocnienie"):
+                total_cost += 100
+                selected_options['nadkola_wzmocnienie'] = True
+            if st.checkbox("Blacha aluminiowa ryflowana", key=f"{prefix}nadkola_blacha_ryflowana"):
+                total_cost += 100
+                selected_options['nadkola_blacha_ryflowana'] = True
+
+        # Sekcja: Inne
+        st.subheader("Inne")
+        if st.checkbox("Listwa airline", key=f"{prefix}listwa_airline"):
+            total_cost += 100
+            selected_options['listwa_airline'] = True
+        if st.checkbox("Drążek rozporowy", key=f"{prefix}drazek_rozporowy"):
+            total_cost += 100
+            selected_options['drazek_rozporowy'] = True
+        if st.checkbox("Przygotowanie do montażu agregatu chłodniczego", key=f"{prefix}przygotowanie_agregatu"):
+            total_cost += 100
+            selected_options['przygotowanie_agregatu'] = True
+
+        inne = st.text_input("Inne (opisz)", key=f"{prefix}inne")
+        if inne:
+            selected_options['inne'] = inne
+
+        # Podsumowanie
+        st.subheader("Podsumowanie")
+        st.write(f"Koszt dodatkowego wyposażenia: {total_cost} zł")
+
+    # Zapisz wybrane opcje w session_state
+    if render_ui:
+        st.session_state['selected_attachments'] = selected_options
+        st.session_state['attachments_cost'] = total_cost
+    
+    return total_cost
+
 class OfferGenerator:
     def __init__(self, db: OfferDatabase):
         self.db = db
@@ -42,6 +186,10 @@ class OfferGenerator:
             # Koszt zestawu podgrzewacza
             zestaw = offer_data.get('zestaw_podgrzewacza', {})
             total += float(zestaw.get('cena') or 0)
+
+            # Dodaj koszt dodatkowego wyposażenia
+            if 'attachments_cost' in st.session_state:
+                total += st.session_state['attachments_cost']
             
             return total
         except (ValueError, TypeError) as e:
@@ -138,7 +286,7 @@ class OfferGenerator:
             
             Format odpowiedzi:
             {{
-                "dane_firmy": {{
+                "dane_klienta": {{
                     "nazwa": "",
                     "adres": "",
                     "nip": "",
@@ -276,9 +424,16 @@ class OfferGenerator:
                 
                 logger.info(f"Znaleziono pojazd w bazie: {json.dumps(db_vehicle_info, indent=2, ensure_ascii=False)}")
                 
+                # Dodaj koszt dodatkowego wyposażenia do ceny całkowitej
+                if 'attachments_cost' in st.session_state:
+                    extracted_info['cena_calkowita_netto'] = (
+                        float(extracted_info.get('cena_calkowita_netto', 0)) + 
+                        float(st.session_state['attachments_cost'])
+                    )
+                
                 # Tworzenie finalnej oferty
                 offer_data = {
-                    "dane_firmy": extracted_info['dane_firmy'],
+                    "dane_klienta": extracted_info['dane_klienta'],
                     "data_oferty": extracted_info['data_oferty'],
                     "numer_oferty": extracted_info['numer_oferty'],
                     "pojazd": {
@@ -299,19 +454,23 @@ class OfferGenerator:
                         **extracted_info.get('zestaw_podgrzewacza', {}),
                         "cena": float(extracted_info.get('zestaw_podgrzewacza', {}).get('cena') or 0)
                     },
-                    "cena_calkowita_netto": self.calculate_total_cost(extracted_info)
+                    "cena_calkowita_netto": extracted_info['cena_calkowita_netto']
                 }
+                
+                # Dodaj informacje o wybranym dodatkowym wyposażeniu
+                if 'selected_attachments' in st.session_state:
+                    offer_data['dodatkowe_wyposazenie'] = st.session_state['selected_attachments']
                 
                 logger.info(f"Wygenerowano ofertę: {json.dumps(offer_data, indent=2, ensure_ascii=False)}")
                 
                 # Sprawdzenie wymaganych danych
                 missing_data = []
                 
-                # Sprawdź dane firmy
+                # Sprawdź dane klienta
                 required_company_data = ['nazwa', 'adres', 'nip']
                 for field in required_company_data:
-                    if not offer_data.get('dane_firmy', {}).get(field):
-                        missing_data.append(f"Dane firmy - {field}")
+                    if not offer_data.get('dane_klienta', {}).get(field):
+                        missing_data.append(f"Dane Klienta - {field}")
                 
                 # Sprawdź dane pojazdu
                 required_vehicle_data = ['marka', 'model', 'kubatura']
@@ -344,13 +503,15 @@ class OfferGenerator:
             """Usuwa polskie znaki z tekstu"""
             if not isinstance(text, str):
                 text = str(text)
-            chars = {
+            
+            chars_map = {
                 'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
                 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
                 'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 
                 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
             }
-            for pl, en in chars.items():
+            
+            for pl, en in chars_map.items():
                 text = text.replace(pl, en)
             return text
 
@@ -364,7 +525,7 @@ class OfferGenerator:
             
             # Usuwamy polskie znaki ze wszystkich danych
             sanitized_data = {
-                'dane_firmy': {remove_pl_chars(k): remove_pl_chars(v) for k, v in offer_data['dane_firmy'].items()},
+                'dane_klienta': {remove_pl_chars(k): remove_pl_chars(v) for k, v in offer_data['dane_klienta'].items()},
                 'pojazd': {remove_pl_chars(k): remove_pl_chars(str(v)) for k, v in offer_data['pojazd'].items()},
                 'agregat': {remove_pl_chars(k): remove_pl_chars(str(v)) for k, v in offer_data['agregat'].items()},
                 'data_oferty': remove_pl_chars(str(offer_data.get('data_oferty', ''))),
@@ -380,7 +541,7 @@ class OfferGenerator:
             pdf = OfferTemplate()
             
             # Sekcje z tekstem (bez polskich znaków)
-            pdf.create_section('Dane firmy', sanitized_data['dane_firmy'])
+            pdf.create_section('Dane Klienta', sanitized_data['dane_klienta'])
             pdf.create_section('Informacje o pojezdzie', sanitized_data['pojazd'])
             pdf.create_section('Agregat', {k: v for k, v in sanitized_data['agregat'].items() if 'cena' not in k.lower()})
             
@@ -404,7 +565,22 @@ class OfferGenerator:
             if 'zestaw_podgrzewacza' in offer_data:
                 koszty_data['Zestaw podgrzewacza'] = f"{float(offer_data['zestaw_podgrzewacza'].get('cena') or 0):.2f} PLN"
             
-            pdf.create_section('Szczegoly kosztow', {remove_pl_chars(k): v for k, v in koszty_data.items()})
+            # Dodaj sekcję dodatkowego wyposażenia
+            if 'selected_attachments' in st.session_state and st.session_state['selected_attachments']:
+                # Sanityzacja nazw wyposażenia
+                sanitized_attachments = {
+                    remove_pl_chars(k): 'Tak' 
+                    for k, v in st.session_state['selected_attachments'].items() if v
+                }
+                pdf.create_section(remove_pl_chars('Dodatkowe wyposazenie'), sanitized_attachments)
+                
+                # Dodaj koszt dodatkowego wyposażenia do sekcji kosztów
+                if 'attachments_cost' in st.session_state:
+                    koszty_data[remove_pl_chars('Dodatkowe wyposazenie')] = f"{float(st.session_state['attachments_cost']):.2f} PLN"
+            
+            # Sanityzacja sekcji kosztów
+            sanitized_koszty = {remove_pl_chars(k): v for k, v in koszty_data.items()}
+            pdf.create_section(remove_pl_chars('Szczegoly kosztow'), sanitized_koszty)
             
             # Obliczanie i wyświetlanie sumy
             total_cost = sum([
@@ -415,6 +591,10 @@ class OfferGenerator:
                 float(offer_data.get('grzanie', {}).get('cena') or 0),
                 float(offer_data.get('zestaw_podgrzewacza', {}).get('cena') or 0)
             ])
+            
+            # Dodaj koszt dodatkowego wyposażenia do sumy
+            if 'attachments_cost' in st.session_state:
+                total_cost += float(st.session_state['attachments_cost'])
             
             pdf.create_section('Podsumowanie kosztow', {
                 'Cena calkowita netto': f"{total_cost:.2f} PLN",
@@ -450,13 +630,16 @@ class OfferTemplate(FPDF):
         self.image_width = 60
         self.image_margin = 5
         
-        # Potem inicjalizujemy klasę bazową
+        # Inicjalizacja z obsługą UTF-8
         super().__init__()
         self.set_auto_page_break(auto=True, margin=25)
         self.add_page()
         self.set_margins(10, 10, 10)
         
-        # Dane do stopki
+        # Włącz obsługę UTF-8
+        self.set_font('Arial', '', 12)
+        
+        # Dane do stopki (bez polskich znaków)
         self.footer_data = {
             'telefon': '+48 123 456 789',
             'email': 'kontakt@autoadaptacje.pl',
@@ -511,6 +694,30 @@ class OfferTemplate(FPDF):
         self.set_y(self.header_height + self.top_margin_after_header)
 
     def create_section(self, title, content, with_background=True):
+        def remove_pl_chars(text):
+            """Usuwa polskie znaki z tekstu"""
+            if not isinstance(text, str):
+                text = str(text)
+            
+            chars_map = {
+                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
+                'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+                'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 
+                'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+            }
+            
+            for pl, en in chars_map.items():
+                text = text.replace(pl, en)
+            return text
+
+        # Sanityzacja tytułu i zawartości
+        title = remove_pl_chars(title)
+        
+        if isinstance(content, dict):
+            content = {remove_pl_chars(k): remove_pl_chars(str(v)) for k, v in content.items()}
+        else:
+            content = remove_pl_chars(str(content))
+            
         # Jeśli to pierwsza sekcja, upewnij się że zaczyna się po nagłówku
         if self.get_y() < (self.header_height + self.top_margin_after_header):
             self.set_y(self.header_height + self.top_margin_after_header)
