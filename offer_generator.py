@@ -76,7 +76,7 @@ def calculate_attachments_cost(prefix="", render_ui=True):
             if st.checkbox("Stal nierdzewna", key=f"{prefix}stal_nierdzewna"):
                 total_cost += 100
                 selected_options['stal_nierdzewna'] = True
-            if st.checkbox("Blacha aluminiowa ryflowana", key=f"{prefix}blacha_ryflowana"):
+            if st.checkbox("Blacha aluminiowa ryflowana", key=f"{prefix}blacha_aluminiowa_ryflowana"):
                 total_cost += 100
                 selected_options['blacha_ryflowana'] = True
             if st.checkbox("Brak", key=f"{prefix}brak"):
@@ -551,38 +551,26 @@ class OfferGenerator:
             if 'zestaw_podgrzewacza' in sanitized_data:
                 pdf.create_section('Zestaw podgrzewacza', sanitized_data['zestaw_podgrzewacza'])
             
-            # Sekcja kosztów
-            koszty_data = {
-                'Zabudowa izotermiczna': f"{float(offer_data['pojazd'].get('zabudowa_cena') or 0):.2f} PLN",
-                'Sklejki': f"{float(offer_data['pojazd'].get('sklejki_cena') or 0):.2f} PLN",
-                'Nadkola': f"{float(offer_data['pojazd'].get('nadkola_cena') or 0):.2f} PLN",
-                'Agregat': f"{float(offer_data['agregat'].get('cena_cennikowa') or 0):.2f} PLN"
-            }
-            
-            if 'grzanie' in offer_data:
-                koszty_data['Grzanie'] = f"{float(offer_data['grzanie'].get('cena') or 0):.2f} PLN"
-            
-            if 'zestaw_podgrzewacza' in offer_data:
-                koszty_data['Zestaw podgrzewacza'] = f"{float(offer_data['zestaw_podgrzewacza'].get('cena') or 0):.2f} PLN"
-            
-            # Dodaj sekcję dodatkowego wyposażenia
+            # Sekcja dodatkowego wyposażenia
             if 'selected_attachments' in st.session_state and st.session_state['selected_attachments']:
-                # Sanityzacja nazw wyposażenia
-                sanitized_attachments = {
-                    remove_pl_chars(k): 'Tak' 
-                    for k, v in st.session_state['selected_attachments'].items() if v
-                }
-                pdf.create_section(remove_pl_chars('Dodatkowe wyposazenie'), sanitized_attachments)
+                # Przygotuj dane o wyposażeniu
+                equipment_data = {}
+                for key, value in st.session_state['selected_attachments'].items():
+                    if value and key != 'inne':  # Pomijamy pole 'inne'
+                        sanitized_key = remove_pl_chars(key.replace('_', ' ').title())
+                        equipment_data[sanitized_key] = 'Tak'
                 
-                # Dodaj koszt dodatkowego wyposażenia do sekcji kosztów
-                if 'attachments_cost' in st.session_state:
-                    koszty_data[remove_pl_chars('Dodatkowe wyposazenie')] = f"{float(st.session_state['attachments_cost']):.2f} PLN"
+                # Dodaj pole 'inne' jeśli istnieje
+                if 'inne' in st.session_state['selected_attachments']:
+                    inne = st.session_state['selected_attachments']['inne']
+                    if inne:
+                        equipment_data['Inne'] = remove_pl_chars(str(inne))
+                
+                # Dodaj sekcję do PDF
+                if equipment_data:
+                    pdf.create_section(remove_pl_chars('Dodatkowe wyposazenie'), equipment_data)
             
-            # Sanityzacja sekcji kosztów
-            sanitized_koszty = {remove_pl_chars(k): v for k, v in koszty_data.items()}
-            pdf.create_section(remove_pl_chars('Szczegoly kosztow'), sanitized_koszty)
-            
-            # Obliczanie i wyświetlanie sumy
+            # Obliczanie całkowitej kwoty
             total_cost = sum([
                 float(offer_data['pojazd'].get('zabudowa_cena') or 0),
                 float(offer_data['pojazd'].get('sklejki_cena') or 0),
@@ -596,8 +584,9 @@ class OfferGenerator:
             if 'attachments_cost' in st.session_state:
                 total_cost += float(st.session_state['attachments_cost'])
             
-            pdf.create_section('Podsumowanie kosztow', {
-                'Cena calkowita netto': f"{total_cost:.2f} PLN",
+            # Sekcja podsumowania kosztów
+            pdf.create_section(remove_pl_chars('Podsumowanie kosztow'), {
+                remove_pl_chars('Cena calkowita netto'): f"{total_cost:.2f} PLN"
             })
             
             # Dodaj zdjęcia w prawej kolumnie

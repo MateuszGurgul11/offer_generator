@@ -201,8 +201,8 @@ def save_to_session(offer_data):
         # Szczegóły oferty
         szczegoly_data = [
             {'Pole': 'Data oferty', 'Wartość': str(offer_data.get('data_oferty', ''))},
-            {'Pole': 'Numer oferty', 'Wartość': str(offer_data.get('numer_oferty', ''))},
-            {'Pole': 'Cena calkowita netto', 'Wartość': f"{str(offer_data.get('cena_calkowita_netto', '0'))} zł"}
+            {'Pole': 'Numer oferty', 'Wartość': str(zestaw.get('numer_oferty', ''))},
+            {'Pole': 'Cena calkowita netto', 'Wartość': f"{str(zestaw.get('cena_calkowita_netto', '0'))} zł"}
         ]
         st.session_state['data_szczegoly_grid'] = pd.DataFrame(szczegoly_data)
         
@@ -349,7 +349,7 @@ def show_filters(df):
 def main():
     st.set_page_config(
         page_title="AutoAdaptacje",
-        page_icon="🚗",
+        page_icon="assets/favicon.ico",
         layout="wide"
     )
     try:
